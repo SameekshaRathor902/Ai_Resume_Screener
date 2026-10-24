@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Resume Screener</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --page: #edf0f3;
+    --paper: #ffffff;
+    --ink: #16212b;
+    --muted: #55626f;
+    --line: #d5dbe2;
+    --signal: #2457c5;
+    --signal-dark: #1b449c;
+    --match: #17784f;
+    --match-bg: #e3f3eb;
+    --gap: #a8400c;
+    --gap-bg: #fbe9df;
+    --radius: 10px;
+    font-family: "Schibsted Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: var(--ink);
+    background: var(--page);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; line-height: 1.5; }
+  h1, h2, h3 { line-height: 1.2; margin: 0; }
+  h1 { font-size: 1.75rem; font-weight: 800; letter-spacing: -0.01em; }
+  h2 { font-size: 1.15rem; font-weight: 800; }
+  h3 { font-size: 1rem; font-weight: 600; }
+  p { margin: 0; }
+
+  .shell { max-width: 1180px; margin: 0 auto; padding: 28px 20px 56px; }
+  header { margin-bottom: 24px; }
+  header p { color: var(--muted); margin-top: 6px; max-width: 62ch; }
+
+  .layout { display: grid; grid-template-columns: minmax(300px, 420px) 1fr; gap: 24px; align-items: start; }
+  @media (max-width: 860px) { .layout { grid-template-columns: 1fr; } }
+
+  .panel { background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; }
+  .inputs { display: grid; gap: 18px; }
+
+  label.field { display: grid; gap: 6px; font-weight: 600; }
+  textarea {
+    width: 100%; min-height: 150px; resize: vertical; padding: 10px 12px;
+    font: inherit; font-weight: 400; color: inherit;
+    border: 1px solid var(--line); border-radius: 8px; background: #fbfcfd;
+  }
+  textarea.tall { min-height: 220px; }
+  input[type="file"] { font: inherit; font-weight: 400; max-width: 100%; }
+  .hint { color: var(--muted); font-size: 0.875rem; font-weight: 400; }
+
+  .modes { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .modes button {
+    flex: 1; padding: 9px 10px; border: 0; background: transparent; font: inherit; font-weight: 600;
+    color: var(--muted); cursor: pointer;
+  }
+  .modes button + button { border-left: 1px solid var(--line); }
+  .modes button[aria-selected="true"] { background: var(--ink); color: #fff; }
+
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+  button.btn {
+    font: inherit; font-weight: 600; padding: 10px 16px; border-radius: 8px; cursor: pointer;
+    border: 1px solid var(--signal); background: var(--signal); color: #fff;
+  }
+  button.btn:hover:not(:disabled) { background: var(--signal-dark); }
+  button.btn.secondary { background: var(--paper); color: var(--signal); }
+  button.btn.secondary:hover:not(:disabled) { background: #eef3fc; }
+  button.btn.small { padding: 6px 10px; font-size: 0.875rem; }
+  button:disabled { opacity: 0.55; cursor: not-allowed; }
+  :focus-visible { outline: 3px solid #f0b429; outline-offset: 2px; }
+
+  .check { display: flex; gap: 8px; align-items: flex-start; font-weight: 400; font-size: 0.9rem; color: var(--muted); }
+  .check input { margin-top: 4px; }
+
+  .banner { padding: 10px 14px; border-radius: 8px; font-size: 0.95rem; }
+  .banner.error { background: var(--gap-bg); color: var(--gap); border: 1px solid #efc7b2; }
+  .banner.note { background: #eef3fc; color: var(--signal-dark); border: 1px solid #cfdcf3; }
+
+  .results { display: grid; gap: 18px; }
+  .empty { color: var(--muted); }
+  .empty h2 { color: var(--ink); margin-bottom: 6px; }
+
+  /* The score meter: the fill shows the score, white ticks mark the weak / fair / strong bands. */
+  .meter-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .meter-score { font-size: 2.4rem; font-weight: 800; letter-spacing: -0.02em; }
+  .meter-score small { font-size: 1rem; font-weight: 600; color: var(--muted); }
+  .meter-band { font-weight: 600; }
+  .meter { position: relative; height: 14px; background: #e6eaef; border-radius: 7px; margin-top: 10px; overflow: hidden; }
+  .meter-fill { height: 100%; width: 0; border-radius: 7px; background: var(--signal); transition: width 0.5s ease; }
+  .meter-fill.weak { background: var(--gap); }
+  .meter-fill.strong { background: var(--match); }
+  .tick { position: absolute; top: 0; bottom: 0; width: 2px; background: #fff; }
+  .meter-scale { position: relative; height: 18px; margin-top: 4px; font-size: 0.8rem; color: var(--muted); }
+  .meter-scale span { position: absolute; transform: translateX(-50%); }
+  .sub-scores { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 10px; color: var(--muted); font-size: 0.9rem; }
+  .sub-scores b { color: var(--ink); }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .chip { padding: 3px 10px; border-radius: 999px; font-size: 0.875rem; border: 1px solid transparent; }
+  .chip.match { background: var(--match-bg); color: var(--match); }
+  .chip.gap { background: var(--gap-bg); color: var(--gap); }
+  .chip.skill { font-weight: 600; border-color: currentColor; }
+  .group-note { color: var(--muted); font-size: 0.875rem; margin-top: 4px; }
+
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media (max-width: 700px) { .cols { grid-template-columns: 1fr; } }
+
+  ul.plain { margin: 10px 0 0; padding-left: 1.1rem; display: grid; gap: 6px; }
+  ol.plain { margin: 10px 0 0; padding-left: 1.3rem; display: grid; gap: 8px; }
+  .stack > * + * { margin-top: 16px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+  th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-weight: 600; color: var(--muted); }
+  td.num { font-weight: 800; white-space: nowrap; }
+  .table-wrap { overflow-x: auto; }
+  .row-error td { color: var(--gap); }
+  .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+  .fine { color: var(--muted); font-size: 0.85rem; }
+
+  @media (prefers-reduced-motion: reduce) { .meter-fill { transition: none; } }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <header>
+    <h1>Resume Screener</h1>
+    <p>Paste a job description, add one resume or several, and see how closely they match. Scores are a screening aid, so a person should make the final call.</p>
+  </header>
+
+  <div class="layout">
+    <section class="panel inputs" aria-label="Inputs">
+      <label class="field" for="jd">Job description
+        <textarea id="jd" placeholder="Paste the full job description here"></textarea>
+      </label>
+
+      <div class="modes" role="tablist" aria-label="How many resumes">
+        <button type="button" role="tab" id="tab-single" aria-selected="true" aria-controls="panel-single">One resume</button>
+        <button type="button" role="tab" id="tab-multi" aria-selected="false" aria-controls="panel-multi">Compare several</button>
+      </div>
+
+      <div id="panel-single" role="tabpanel" aria-labelledby="tab-single" class="inputs">
+        <label class="field" for="file-single">Resume file
+          <input id="file-single" type="file" accept=".txt,.pdf,.docx">
+          <span class="hint" id="file-hint">.pdf, .docx or .txt, up to 5 MB. Scanned PDFs need to be converted to text first.</span>
+        </label>
+        <label class="field" for="resume">Or paste the resume text
+          <textarea id="resume" class="tall" placeholder="Resume text appears here after you choose a file"></textarea>
+        </label>
+        <div class="actions">
+          <button type="button" class="btn" id="btn-score">Check match</button>
+          <button type="button" class="btn secondary" id="btn-ai">Run AI review</button>
+        </div>
+      </div>
+
+      <div id="panel-multi" role="tabpanel" aria-labelledby="tab-multi" class="inputs" hidden>
+        <label class="field" for="file-multi">Resume files
+          <input id="file-multi" type="file" accept=".txt,.pdf,.docx" multiple>
+          <span class="hint">Up to 20 files. Each one is scored separately and ranked.</span>
+        </label>
+        <div class="actions">
+          <button type="button" class="btn" id="btn-rank">Rank resumes</button>
+        </div>
+      </div>
+
+      <label class="check" for="semantic">
+        <input type="checkbox" id="semantic">
+        <span>Also compare meaning, not just keywords. Needs AI to be on and adds a little time.</span>
+      </label>
+      <p class="fine" id="privacy-note">Emails, phone numbers and links are removed before text is sent to Gemini.</p>
+    </section>
+
+    <section class="results" id="results" aria-live="polite" aria-label="Results">
+      <div class="panel empty">
+        <h2>No results yet</h2>
+        <p>Add a job description and a resume, then choose Check match.</p>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const results = $("results");
+  let aiEnabled = false;
+  let lastRanking = [];
+
+  // ---------- small DOM helpers (all text goes through textContent, never innerHTML) ----------
+  function el(tag, className, text) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined) node.textContent = text;
+    return node;
+  }
+  function panel(...children) {
+    const section = el("div", "panel stack");
+    children.forEach((c) => c && section.appendChild(c));
+    return section;
+  }
+  function chips(items, kind, skillSet) {
+    const wrap = el("div", "chips");
+    items.forEach((item) => {
+      const isSkill = skillSet && skillSet.has(item);
+      wrap.appendChild(el("span", `chip ${kind}${isSkill ? " skill" : ""}`, item));
+    });
+    return wrap;
+  }
+  function list(tag, items) {
+    const node = el(tag, "plain");
+    items.forEach((text) => node.appendChild(el("li", "", text)));
+    return node;
+  }
+  function show(...nodes) {
+    results.replaceChildren(...nodes.filter(Boolean));
+  }
+  function banner(kind, message) {
+    const node = el("div", `banner ${kind}`, message);
+    node.setAttribute("role", kind === "error" ? "alert" : "status");
+    return node;
+  }
+  function clearBanners() {
+    results.querySelectorAll(".banner").forEach((b) => b.remove());
+  }
+  function showError(message) {
+    clearBanners();
+    results.prepend(banner("error", message));
+  }
+
+  async function busy(button, label, work) {
+    const original = button.textContent;
+    document.querySelectorAll("button.btn").forEach((b) => (b.disabled = true));
+    button.textContent = label;
+    try {
+      return await work();
+    } finally {
+      button.textContent = original;
+      document.querySelectorAll("button.btn").forEach((b) => (b.disabled = false));
+      syncAiButtons();
+    }
+  }
+
+  async function api(path, { json, form } = {}) {
+    const options = { method: "POST" };
+    if (json) {
+      options.headers = { "Content-Type": "application/json" };
+      options.body = JSON.stringify(json);
+    } else {
+      options.body = form;
+    }
+    let res;
+    try {
+      res = await fetch(path, options);
+    } catch {
+      throw new Error("Could not reach the server. Check your connection and try again.");
+    }
+    let data = {};
+    try { data = await res.json(); } catch { /* non-JSON error page */ }
+    if (!res.ok) throw new Error(data.error || `Request failed (${res.status}).`);
+    return data;
+  }
+
+  // ---------- rendering ----------
+  function band(score) {
+    if (score >= 70) return { name: "Strong match", cls: "strong" };
+    if (score >= 40) return { name: "Fair match", cls: "" };
+    return { name: "Weak match", cls: "weak" };
+  }
+
+  function scoreCard(data) {
+    const b = band(data.score);
+    const head = el("div", "meter-head");
+    const score = el("div", "meter-score", String(data.score));
+    score.appendChild(el("small", "", " / 100"));
+    head.append(score, el("div", "meter-band", b.name));
+
+    const meter = el("div", "meter");
+    meter.setAttribute("role", "meter");
+    meter.setAttribute("aria-valuemin", "0");
+    meter.setAttribute("aria-valuemax", "100");
+    meter.setAttribute("aria-valuenow", String(data.score));
+    meter.setAttribute("aria-label", `Match score ${data.score} out of 100, ${b.name}`);
+    const fill = el("div", `meter-fill ${b.cls}`);
+    meter.appendChild(fill);
+    [40, 70].forEach((at) => {
+      const tick = el("div", "tick");
+      tick.style.left = `${at}%`;
+      meter.appendChild(tick);
+    });
+    requestAnimationFrame(() => (fill.style.width = `${Math.max(2, data.score)}%`));
+
+    const scale = el("div", "meter-scale");
+    [["Weak", 20], ["Fair", 55], ["Strong", 85]].forEach(([label, at]) => {
+      const s = el("span", "", label);
+      s.style.left = `${at}%`;
+      scale.appendChild(s);
+    });
+
+    const subs = el("div", "sub-scores");
+    const add = (label, value) => {
+      if (value === null || value === undefined) return;
+      const item = el("span", "", `${label}: `);
+      item.appendChild(el("b", "", `${value}%`));
+      subs.appendChild(item);
+    };
+    add("Keywords", data.keyword_score);
+    add("Technical skills", data.skill_score);
+    add("Meaning", data.semantic_score);
+
+    return panel(head, meter, scale, subs);
+  }
+
+  function keywordCard(data) {
+    const skillSet = new Set([...(data.matched_skills || []), ...(data.missing_skills || [])]);
+    const card = panel();
+
+    const missing = el("div");
+    missing.appendChild(el("h3", "", `Missing from the resume (${data.missing_keywords.length})`));
+    missing.appendChild(
+      data.missing_keywords.length
+        ? chips(data.missing_keywords, "gap", skillSet)
+        : el("p", "group-note", "Nothing from the job description is missing.")
+    );
+
+    const found = el("div");
+    found.appendChild(el("h3", "", `Found in the resume (${data.matched_keywords.length})`));
+    found.appendChild(
+      data.matched_keywords.length
+        ? chips(data.matched_keywords, "match", skillSet)
+        : el("p", "group-note", "No job description keywords were found.")
+    );
+
+    card.append(missing, found, el("p", "group-note", "Bold outlined terms are recognised technical skills and count more toward the score."));
+    return card;
+  }
+
+  function aiCard(data) {
+    const card = panel(el("h2", "", "AI review"));
+    if (data.summary) card.appendChild(el("p", "", data.summary));
+
+    const cols = el("div", "cols");
+    if (data.strengths && data.strengths.length) {
+      const c = el("div"); c.append(el("h3", "", "Strengths"), list("ul", data.strengths)); cols.appendChild(c);
+    }
+    if (data.weaknesses && data.weaknesses.length) {
+      const c = el("div"); c.append(el("h3", "", "Areas to improve"), list("ul", data.weaknesses)); cols.appendChild(c);
+    }
+    if (cols.children.length) card.appendChild(cols);
+
+    if (data.suggestions && data.suggestions.length) {
+      const c = el("div"); c.append(el("h3", "", "Suggested resume changes"), list("ul", data.suggestions)); card.appendChild(c);
+    }
+    if (data.questions && data.questions.length) {
+      const c = el("div"); c.append(el("h3", "", "Interview questions"), list("ol", data.questions)); card.appendChild(c);
+    }
+    return card;
+  }
+
+  // ---------- actions ----------
+  function requireInputs() {
+    const job = $("jd").value.trim();
+    const resume = $("resume").value.trim();
+    if (!job) { showError("Add a job description first."); $("jd").focus(); return null; }
+    if (!resume) { showError("Add a resume by choosing a file or pasting the text."); return null; }
+    return { job_description: job, resume_text: resume };
+  }
+
+  async function scoreSingle() {
+    const body = requireInputs();
+    if (!body) return;
+    body.use_semantic = $("semantic").checked && aiEnabled;
+    const data = await api("/score_resume", { json: body });
+    show(scoreCard(data), keywordCard(data));
+  }
+
+  async function aiReview() {
+    const body = requireInputs();
+    if (!body) return;
+    const [scored, ai] = await Promise.all([
+      api("/score_resume", { json: { ...body, use_semantic: $("semantic").checked && aiEnabled } }),
+      api("/analyze_all", { json: body }),
+    ]);
+    show(scoreCard(scored), keywordCard(scored), aiCard(ai));
+  }
+
+  async function uploadSingle() {
+    const file = $("file-single").files[0];
+    if (!file) return;
+    const form = new FormData();
+    form.append("resume_file", file);
+    try {
+      const data = await api("/upload_resume", { form });
+      $("resume").value = data.extracted_text;
+      clearBanners();
+      if (data.truncated) results.prepend(banner("note", "The resume was long, so only the first 20,000 characters are used."));
+    } catch (err) {
+      $("file-single").value = "";
+      showError(err.message);
+    }
+  }
+
+  async function rank() {
+    const job = $("jd").value.trim();
+    const files = $("file-multi").files;
+    if (!job) { showError("Add a job description first."); $("jd").focus(); return; }
+    if (!files.length) { showError("Choose at least one resume file."); return; }
+    const form = new FormData();
+    form.append("job_description", job);
+    form.append("use_semantic", String($("semantic").checked && aiEnabled));
+    Array.from(files).forEach((f) => form.append("resume_files", f));
+    const data = await api("/rank_resumes", { form });
+    lastRanking = data.results;
+    renderRanking(data.results);
+  }
+
+  function renderRanking(rows) {
+    const toolbar = el("div", "toolbar");
+    toolbar.appendChild(el("h2", "", `Ranking (${rows.filter((r) => !r.error).length} scored)`));
+    const exportBtn = el("button", "btn secondary small", "Download CSV");
+    exportBtn.type = "button";
+    exportBtn.addEventListener("click", exportCsv);
+    toolbar.appendChild(exportBtn);
+
+    const table = el("table");
+    const head = el("tr");
+    ["Rank", "Resume", "Match", "Missing technical skills", ""].forEach((h) => head.appendChild(el("th", "", h)));
+    table.appendChild(el("thead")).appendChild(head);
+
+    const body = el("tbody");
+    rows.forEach((row) => {
+      const tr = el("tr");
+      if (row.error) {
+        tr.className = "row-error";
+        tr.append(el("td", "", "-"), el("td", "", row.filename));
+        const msg = el("td", "", row.error);
+        msg.colSpan = 3;
+        tr.appendChild(msg);
+      } else {
+        tr.appendChild(el("td", "num", String(row.rank)));
+        tr.appendChild(el("td", "", row.filename));
+        tr.appendChild(el("td", "num", `${row.score}%`));
+        const miss = el("td");
+        miss.appendChild(
+          row.missing_skills.length ? chips(row.missing_skills, "gap") : el("span", "group-note", "None")
+        );
+        tr.appendChild(miss);
+        const action = el("td");
+        const review = el("button", "btn secondary small", "Review");
+        review.type = "button";
+        review.addEventListener("click", () => reviewRow(row));
+        action.appendChild(review);
+        tr.appendChild(action);
+      }
+      body.appendChild(tr);
+    });
+    table.appendChild(body);
+
+    const wrap = el("div", "table-wrap");
+    wrap.appendChild(table);
+    show(panel(toolbar, wrap));
+  }
+
+  function reviewRow(row) {
+    $("resume").value = row.text;
+    selectMode("single");
+    scoreSingle().catch((err) => showError(err.message));
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  // CSV cells that start with = + - @ can run as formulas in Excel, so they get a leading apostrophe.
+  function csvCell(value) {
+    let text = value === null || value === undefined ? "" : String(value);
+    if (/^[=+\-@\t\r]/.test(text)) text = "'" + text;
+    return `"${text.replace(/"/g, '""')}"`;
+  }
+  function exportCsv() {
+    const header = ["Rank", "Resume", "Match %", "Keyword %", "Technical skills %", "Missing technical skills", "Error"];
+    const lines = [header.map(csvCell).join(",")];
+    lastRanking.forEach((r) => {
+      lines.push([
+        r.rank, r.filename, r.score, r.keyword_score, r.skill_score,
+        (r.missing_skills || []).join("; "), r.error || "",
+      ].map(csvCell).join(","));
+    });
+    const blob = new Blob([lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "resume-ranking.csv";
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }
+
+  // ---------- tabs and wiring ----------
+  function selectMode(mode) {
+    const single = mode === "single";
+    $("tab-single").setAttribute("aria-selected", String(single));
+    $("tab-multi").setAttribute("aria-selected", String(!single));
+    $("panel-single").hidden = !single;
+    $("panel-multi").hidden = single;
+  }
+
+  function syncAiButtons() {
+    $("btn-ai").disabled = !aiEnabled;
+    $("btn-ai").title = aiEnabled ? "" : "AI features are off. Set GOOGLE_API_KEY on the server.";
+    $("semantic").disabled = !aiEnabled;
+    $("privacy-note").hidden = !aiEnabled;
+  }
+
+  const guard = (button, label, fn) => () =>
+    busy(button, label, fn).catch((err) => showError(err.message));
+
+  $("tab-single").addEventListener("click", () => selectMode("single"));
+  $("tab-multi").addEventListener("click", () => selectMode("multi"));
+  $("file-single").addEventListener("change", uploadSingle);
+  $("btn-score").addEventListener("click", guard($("btn-score"), "Checking…", scoreSingle));
+  $("btn-ai").addEventListener("click", guard($("btn-ai"), "Reviewing…", aiReview));
+  $("btn-rank").addEventListener("click", guard($("btn-rank"), "Ranking…", rank));
+
+  fetch("/health").then((r) => r.json()).then((h) => {
+      aiEnabled = !!h.ai_enabled;
+      if (h.ocr_enabled) {
+        $("file-hint").textContent = ".pdf, .docx or .txt, up to 5 MB. Scanned PDFs are read with OCR, which takes a few seconds per page.";
+      }
+      syncAiButtons();
+    })
+    .catch(() => syncAiButtons());
+  syncAiButtons();
+})();
+</script>
+</body>
+</html>

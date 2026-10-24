@@ -1,0 +1,12 @@
+# Your own skills, one per line. Lines starting with # are ignored.
+# Point CUSTOM_SKILLS_FILE at a copy of this file (see README).
+
+# A single-word skill
+bim
+
+# A multi-word skill
+supply chain planning
+
+# A variant that means the same thing:  variant = the skill it maps to
+s&op = sales and operations planning
+cfa = chartered financial analyst
