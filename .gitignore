@@ -1,0 +1,22 @@
+.env
+*.key
+
+# Virtual environments (create your own with: python -m venv .venv)
+venv/
+.venv/
+env/
+pyvenv.cfg
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
